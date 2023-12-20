@@ -39,7 +39,8 @@ env_map = {
     'BUCKET': 'bucket',
     'SUPPORT_EMAIL': 'email',
     'DNS_PROVIDER': 'provider',
-    'SERVICE_ACCOUNT': 'service_account'
+    'SERVICE_ACCOUNT': 'service_account',
+    'DAYS': 'days'
 }
 
 for k, v in env_map.items():

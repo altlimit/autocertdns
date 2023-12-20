@@ -17,6 +17,12 @@ or you can also run this in a Cloud Run Job, just create a cloud run job and set
 * DNS_PROVIDER - provide the certbot-dns-(plugin) from https://eff-certbot.readthedocs.io/en/stable/using.html#dns-plugins
 * SERVICE_ACCOUNT - optional if cloud run instance runs on the same project and you use service account with proper access
 
+for cloud run, clone this repo and build it in your container registry then deploy a new job and create a scheduled trigger.
+
+```bash
+gcloud builds submit --tag gcr.io/project_id/autcertdns
+```
+
 You will also need to add the service account client_email to become an owner in webmaster tools at https://www.google.com/webmasters/verification/verification
 to allow it to update ssl certificates.
 
