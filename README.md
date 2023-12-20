@@ -16,6 +16,7 @@ or you can also run this in a Cloud Run Job, just create a cloud run job and set
 * SUPPORT_EMAIL - email for letsencrypt
 * DNS_PROVIDER - provide the certbot-dns-(plugin) from https://eff-certbot.readthedocs.io/en/stable/using.html#dns-plugins
 * SERVICE_ACCOUNT - optional if cloud run instance runs on the same project and you use service account with proper access
+* DAYS - days before expiry to renew, defaults to 15
 
 for cloud run, clone this repo and build it in your container registry then deploy a new job and create a scheduled trigger.
 
