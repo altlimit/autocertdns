@@ -53,10 +53,14 @@ if args.service_account:
     data = json.loads(args.service_account)
     run(f'gcloud auth activate-service-account {data["client_email"]} --key-file=./sa.json --project={args.project}')
 
-run('mkdir /etc/letsencrypt')
-run(f'gsutil -m rsync -r gs://{args.bucket}/letsencrypt /etc/letsencrypt')
-cert_path = f'/etc/letsencrypt/live/{args.domain}/cert.pem'
+try:
+    run(f'gsutil cp gs://{args.bucket}/{args.domain}.tar.gz .')
+except Exception as e:
+    print(f'copy error {e}')
+if os.path.exists(f'{args.domain}.tar.gz'):
+    run(f'tar -zxf {args.domain}.tar.gz -C /')
 
+cert_path = f'/etc/letsencrypt/live/{args.domain}/cert.pem'
 if os.path.exists(cert_path):
     days = 86400 * args.days
     if 'Certificate will not expire' in run(f'openssl x509 -checkend {days} -noout -in {cert_path}', True):
@@ -68,7 +72,8 @@ with open('dns.ini', 'w') as f:
     f.write(args.credentials)
 run(f'certbot certonly --key-type rsa -n -m {args.email} --agree-tos --preferred-challenges dns --dns-{args.provider} --dns-{args.provider}-credentials ./dns.ini -d *.{args.domain} --cert-name {args.domain}')
 run(f'openssl rsa -in /etc/letsencrypt/live/{args.domain}/privkey.pem -out /etc/letsencrypt/live/{args.domain}/privkey-rsa.pem')
-run(f'gsutil -m rsync -r /etc/letsencrypt gs://{args.bucket}/letsencrypt')
+run(f'tar -zcf {args.domain}.tar.gz /etc/letsencrypt')
+run(f'gsutil cp {args.domain}.tar.gz gs://{args.bucket}/')
 cert_id = run(f'gcloud app ssl-certificates list --format "get(id,domain_names)" | grep -F "*.{args.domain}" | head -n 1 | cut -f 1 || true', True)
 run(f'gcloud app ssl-certificates update {cert_id} --certificate /etc/letsencrypt/live/{args.domain}/fullchain.pem --private-key /etc/letsencrypt/live/{args.domain}/privkey-rsa.pem')
-print(f'Certificate update complete: {args.domain}')    
+print(f'Certificate update complete: {args.domain}')

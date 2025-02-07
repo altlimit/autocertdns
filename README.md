@@ -18,10 +18,12 @@ or you can also run this in a Cloud Run Job, just create a cloud run job and set
 * SERVICE_ACCOUNT - optional if cloud run instance runs on the same project and you use service account with proper access
 * DAYS - days before expiry to renew, defaults to 15
 
-for cloud run, clone this repo and build it in your container registry then deploy a new job and create a scheduled trigger.
+for cloud run, clone this repo and build it then push to your artifact registry then deploy a new job and create a scheduled trigger.
 
 ```bash
-gcloud builds submit --tag gcr.io/project_id/autcertdns
+docker build -t REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE_NAME:TAG .
+gcloud auth configure-docker REGION-docker.pkg.dev
+docker push REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE_NAME
 ```
 
 You will also need to add the service account client_email to become an owner in webmaster tools at https://www.google.com/webmasters/verification/verification
