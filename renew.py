@@ -17,6 +17,7 @@ parser.add_argument('--project', type=str, help='GCP Project')
 parser.add_argument('--credentials', type=str, help='DNS credentials')
 parser.add_argument('--days', type=int, help='Number of days before renewal (default: 15)', default=15)
 parser.add_argument('--test-only', action='store_true', help='Just output commands')
+parser.add_argument('--force-upload', action='store_true', help='Force upload of certificate')
 
 args = parser.parse_args()
 
@@ -31,6 +32,15 @@ def run(cmd, capture=False):
     p = subprocess.run(cmd.split(' '), stderr=sys.stderr, stdout=sys.stdout)
     if p.returncode != 0:
         raise Exception(f'Failed with exit code: {p.returncode}')
+
+def upload():
+    cert_id = run(f'gcloud app ssl-certificates list --format "get(id,domain_names)" | grep -F "*.{args.domain}" | head -n 1 | cut -f 1 || true', True)
+    if cert_id:
+        run(f'gcloud app ssl-certificates update {cert_id} --certificate /etc/letsencrypt/live/{args.domain}/fullchain.pem --private-key /etc/letsencrypt/live/{args.domain}/privkey-rsa.pem')
+    else:
+        run(f'gcloud app ssl-certificates create --display-name=\'{args.domain} wildcard\' --certificate /etc/letsencrypt/live/{args.domain}/fullchain.pem --private-key /etc/letsencrypt/live/{args.domain}/privkey-rsa.pem')
+    print(f'Certificate uploaded: {args.domain}')
+
 
 env_map = {
     'DNS_CREDENTIALS': 'credentials',
@@ -62,6 +72,8 @@ if os.path.exists(f'{args.domain}.tar.gz'):
 
 cert_path = f'/etc/letsencrypt/live/{args.domain}/cert.pem'
 if os.path.exists(cert_path):
+    if args.force_upload:
+        upload()
     days = 86400 * args.days
     if 'Certificate will not expire' in run(f'openssl x509 -checkend {days} -noout -in {cert_path}', True):
         print(f'certificate will not expire after {args.days} days')
@@ -74,6 +86,4 @@ run(f'certbot certonly --key-type rsa -n -m {args.email} --agree-tos --preferred
 run(f'openssl rsa -in /etc/letsencrypt/live/{args.domain}/privkey.pem -out /etc/letsencrypt/live/{args.domain}/privkey-rsa.pem')
 run(f'tar -zcf {args.domain}.tar.gz /etc/letsencrypt')
 run(f'gsutil cp {args.domain}.tar.gz gs://{args.bucket}/')
-cert_id = run(f'gcloud app ssl-certificates list --format "get(id,domain_names)" | grep -F "*.{args.domain}" | head -n 1 | cut -f 1 || true', True)
-run(f'gcloud app ssl-certificates update {cert_id} --certificate /etc/letsencrypt/live/{args.domain}/fullchain.pem --private-key /etc/letsencrypt/live/{args.domain}/privkey-rsa.pem')
-print(f'Certificate update complete: {args.domain}')
+upload()
